@@ -1,42 +1,70 @@
-# Oracle GenAI Chat Interface
+# Oracle AI Invoice Extractor
 
-This is a local chat interface for Oracle Cloud Infrastructure (OCI) Generative AI Service.
+An intelligent invoice analysis application powered by Oracle Cloud Infrastructure (OCI) Generative AI and Oracle Autonomous Database.
+
+## Features
+
+-   **Invoice Analysis**: Upload PDF/Image invoices and automatically extract data (Seller, Buyer, Items, Totals) using OCI GenAI.
+-   **Receipt Analysis**: Process receipts with advanced OCR capabilities.
+-   **Database Integration**: Automatically saves extracted data to Oracle Autonomous Database (AuD).
+-   **Editable Review**: Review and edit AI-extracted data before saving.
+-   **Invoice Management**: View, search, and manage saved invoices.
+-   **OCI-Native**: Uses OCI GenAI models and Oracle Database for secure, scalable performance.
 
 ## Prerequisites
 
-1.  **Node.js**: Required to run the local authentication proxy.
-2.  **OCI Account**: You need access to OCI GenAI service.
+-   **Node.js 18+**
+-   **Oracle Instant Client**: Required for database connectivity (`node-oracledb`).
+-   **OCI Account**: With access to GenAI service and Autonomous Database.
 
-## Setup
+## Local Development
 
 1.  **Install Dependencies**:
     ```bash
-    npm install express cors dotenv oci-common oci-generativeaiinference
+    npm install
     ```
-    *(A `package.txt` is provided, you can run `npm install $(cat package.txt)`)*
 
-2.  **Configure Credentials**:
-    -   Rename `.env.example` to `.env`.
-    -   Fill in your OCI credentials:
-        -   `OCI_USER_ID`: Your User OCID.
-        -   `OCI_TENANCY_ID`: Your Tenancy OCID.
-        -   `OCI_FINGERPRINT`: API Key Fingerprint.
-        -   `OCI_REGION`: e.g., `us-chicago-1`.
-        -   `OCI_PRIVATE_KEY_PATH`: Path to your private key file (e.g., `./oci_api_key.pem`).
+2.  **Configure Environment**:
+    -   Create `.env` file (see `.env.example`).
+    -   Configure OCI credentials and Database wallet path.
+    -   Ensure your local machine has OCI CLI configured or provide keys in `.env`.
 
-    > **Note**: If you already have OCI CLI configured (`~/.oci/config`), the server will try to use that if `.env` vars are missing.
-
-3.  **Run the Proxy Server**:
+3.  **Run Locally**:
     ```bash
     node server.js
     ```
-    The server will start on `http://localhost:3000`.
+    Access at `http://localhost:3000`.
 
-4.  **Open the App**:
-    -   Open `index.html` in your browser.
-    -   Click the **Settings** icon (gear) in the sidebar.
-    -   Enter your **Compartment OCID** (where your GenAI policies are allowed).
-    -   Start chatting!
+## Deployment (OCI Compute VM)
 
-## Why is `server.js` needed?
-Browsers block direct API calls to OCI due to CORS security policies. Additionally, OCI requires complex cryptographic signing (SigV4) for every request, which is unsafe and difficult to handle directly in client-side JavaScript. The local Node.js server handles this securely for you.
+This application is designed to run on an OCI Compute Instance (Linux).
+
+### 1. VM Requirements
+-   Oracle Linux 8/9 or Ubuntu.
+-   Node.js 18+ installed.
+-   Oracle Instant Client (Basic Lite) installed.
+-   PM2 Process Manager (`npm install -g pm2`).
+
+### 2. Deployment Steps
+1.  **Package**: Zip the application files (excluding `node_modules`).
+2.  **Transfer**: copy `deploy.zip` and your Oracle Wallet zip to the VM.
+3.  **Install**:
+    ```bash
+    unzip deploy.zip -d invoice-app
+    cd invoice-app
+    npm install --production
+    ```
+4.  **Configure**: Create `.env` file with production credentials.
+5.  **Start**:
+    ```bash
+    pm2 start server.js --name "invoice-app"
+    pm2 save
+    ```
+    *Note: The app listens on `PORT` defined in `.env` (default 3000).*
+
+## Architecture
+
+-   **Frontend**: HTML5, CSS3, Vanilla JS
+-   **Backend**: Node.js, Express
+-   **AI**: Oracle OCI Generative AI Service
+-   **Database**: Oracle Autonomous Database (ADB)
