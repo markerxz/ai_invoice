@@ -4,6 +4,5 @@ metadata:
   name: invoice-app-config
   namespace: default
 data:
-  OCI_REGION: "us-chicago-1"
-  # Add other non-sensitive config here
+  OCI_REGION: "ap-singapore-1"
   NODE_ENV: "production"

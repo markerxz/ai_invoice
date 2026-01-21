@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
       - name: invoice-app
-        image: <REGION>.ocir.io/<TENANCY_NAMESPACE>/invoice-app:latest
+        image: ap-singapore-1.ocir.io/apacaseanset01/invoice-app:latest
         imagePullPolicy: Always
         ports:
         - containerPort: 3000
