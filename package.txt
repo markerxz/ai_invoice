@@ -1,0 +1,5 @@
+oci-generativeaiinference
+oci-common
+express
+cors
+dotenv

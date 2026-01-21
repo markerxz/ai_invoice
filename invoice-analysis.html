@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Oracle AI Invoice Extractor - Powered by Oracle Cloud Infrastructure</title>
+    <link rel="stylesheet" href="ocr-style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Outfit:wght@400;500;600;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="brand">
+                <img src="oracle_logo.png" alt="Oracle" style="height: 32px; margin-right: 8px;">
+                <div>
+                    <span style="display: block; font-size: 1.1rem; font-weight: 700;">Oracle AI Invoice
+                        Extractor</span>
+                    <span
+                        style="display: block; font-size: 0.7rem; color: var(--text-secondary); margin-top: 2px;">Powered
+                        by OCI Generative AI</span>
+                </div>
+            </div>
+
+            <nav class="nav-menu">
+                <a href="index.html" class="nav-item">
+                    <i class="fa-solid fa-comments"></i>
+                    <span>Chat</span>
+                </a>
+                <a href="ocr-analysis.html" class="nav-item">
+                    <i class="fa-solid fa-receipt"></i>
+                    <span>Receipt Analysis</span>
+                </a>
+                <a href="invoice-analysis.html" class="nav-item active">
+                    <i class="fa-solid fa-file-invoice-dollar"></i>
+                    <span>Invoice Analysis</span>
+                </a>
+                <a href="invoice-list.html" class="nav-item">
+                    <i class="fa-solid fa-list"></i>
+                    <span>Invoice List</span>
+                </a>
+            </nav>
+
+            <div class="settings-trigger" id="settings-trigger">
+                <i class="fa-solid fa-gear"></i> Settings
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <header class="page-header">
+                <div class="header-content">
+                    <button class="sidebar-toggle" id="sidebar-toggle" title="Toggle Sidebar">
+                        <i class="fa-solid fa-bars"></i>
+                    </button>
+                    <h1><i class="fa-solid fa-file-invoice-dollar"></i> Invoice Analysis</h1>
+                    <p>Extract and analyze invoice data with AI-powered OCR</p>
+                </div>
+            </header>
+
+            <div class="analysis-container">
+                <!-- Left Column: Image Upload -->
+                <div class="upload-section">
+                    <div class="section-card">
+                        <h2><i class="fa-solid fa-cloud-arrow-up"></i> Upload Invoice</h2>
+
+                        <div class="upload-area" id="upload-area">
+                            <div class="upload-placeholder" id="upload-placeholder">
+                                <i class="fa-solid fa-image"></i>
+                                <p>Click to upload or drag & drop</p>
+                                <span>PNG, JPG up to 10MB</span>
+                            </div>
+                            <img id="preview-image" class="preview-image" style="display: none;" alt="Preview">
+                            <button class="remove-btn" id="remove-btn" style="display: none;">
+                                <i class="fa-solid fa-xmark"></i>
+                            </button>
+                        </div>
+                        <input type="file" id="file-input" accept="image/*" style="display: none;">
+
+                        <div class="sample-receipts">
+                            <h3>Sample Invoices</h3>
+                            <div class="sample-grid" id="sample-grid">
+                                <!-- Will be populated by JavaScript -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Middle Column: Configuration -->
+                <div class="config-section">
+                    <div class="section-card">
+                        <h2><i class="fa-solid fa-sliders"></i> Configuration</h2>
+
+                        <div class="form-group">
+                            <label for="model-select">
+                                <i class="fa-solid fa-brain"></i> AI Model
+                            </label>
+                            <select id="model-select" class="select-input">
+                                <option value="gemini">OCI Gemini 2.5 Pro</option>
+                                <option value="grok">OCI Grok 4</option>
+                                <option value="llama">OCI Llama 4 Maverick</option>
+                            </select>
+                            <small class="help-text">Select the AI model for analysis</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="quick-prompt-select">
+                                <i class="fa-solid fa-list-check"></i> Saved Prompts
+                            </label>
+                            <select id="quick-prompt-select" class="select-input">
+                                <option value="">-- Start from scratch --</option>
+                            </select>
+                            <small class="help-text">Load a saved system prompt</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="system-prompt">
+                                <i class="fa-solid fa-message"></i> System Prompt
+                            </label>
+                            <textarea id="system-prompt" class="textarea-input" rows="8"
+                                placeholder="Enter your system prompt here...">Extract structured data from Thai invoices/receipts. Calculate missing values when possible (e.g., unit_price = total/quantity). Return JSON with a "_calculated_fields" array listing calculated field paths like ["items[0].unit_price", "subtotal"].</textarea>
+                            <small class="help-text">Customize how the AI should analyze the receipt</small>
+                        </div>
+
+                        <button id="analyze-btn" class="analyze-btn" disabled>
+                            <i class="fa-solid fa-wand-magic-sparkles"></i>
+                            Analyze Invoice
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Right Column: Results -->
+                <div class="results-section">
+                    <div class="section-card">
+                        <div class="results-header">
+                            <h2><i class="fa-solid fa-chart-line"></i> Analysis Results</h2>
+                            <div class="results-actions">
+                                <div class="view-toggle">
+                                    <button class="view-btn active" id="view-json"><i class="fa-solid fa-code"></i>
+                                        JSON</button>
+                                    <button class="view-btn" id="view-table"><i class="fa-solid fa-table"></i>
+                                        Table</button>
+                                </div>
+                                <span class="divider"
+                                    style="border-left: 1px solid var(--border); margin: 0 8px; height: 24px;"></span>
+                                <button class="icon-btn" id="copy-btn" title="Copy to clipboard" style="display: none;">
+                                    <i class="fa-solid fa-copy"></i>
+                                </button>
+                                <button class="icon-btn" id="download-btn" title="Download as text"
+                                    style="display: none;">
+                                    <i class="fa-solid fa-download"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="results-content" id="results-content">
+                            <!-- Empty State -->
+                            <div class="empty-state" id="empty-state">
+                                <i class="fa-solid fa-inbox"></i>
+                                <p>No analysis yet</p>
+                                <span>Upload an invoice and click "Analyze" to get started</span>
+                            </div>
+
+                            <!-- JSON Result View -->
+                            <div id="json-view" class="result-text"
+                                style="display: none; white-space: pre-wrap; font-family: monospace; overflow: auto;">
+                            </div>
+
+                            <!-- Editor Interface (Hidden by default) -->
+                            <div class="editor-container" id="editor-container" style="display: none;">
+                                <!-- Document Info -->
+                                <div class="editor-section">
+                                    <h3><i class="fa-solid fa-file-lines"></i> Document Info</h3>
+                                    <div class="form-grid">
+                                        <div class="form-group">
+                                            <label>Type</label>
+                                            <input type="text" id="doc-type" placeholder="Invoice, Bill, etc.">
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Number</label>
+                                            <input type="text" id="doc-no" placeholder="INV-001">
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Date</label>
+                                            <input type="date" id="doc-date">
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Currency</label>
+                                            <input type="text" id="doc-currency" value="THB">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Parties -->
+                                <div class="editor-row">
+                                    <div class="editor-col">
+                                        <h3><i class="fa-solid fa-store"></i> Seller</h3>
+                                        <div class="form-group">
+                                            <input type="text" id="seller-name" placeholder="Name">
+                                        </div>
+                                        <div class="form-group">
+                                            <input type="text" id="seller-tax-id" placeholder="Tax ID">
+                                        </div>
+                                        <div class="form-group">
+                                            <textarea id="seller-address" placeholder="Address" rows="2"></textarea>
+                                        </div>
+                                    </div>
+                                    <div class="editor-col">
+                                        <h3><i class="fa-solid fa-user"></i> Buyer</h3>
+                                        <div class="form-group">
+                                            <input type="text" id="buyer-name" placeholder="Name">
+                                        </div>
+                                        <div class="form-group">
+                                            <input type="text" id="buyer-tax-id" placeholder="Tax ID">
+                                        </div>
+                                        <div class="form-group">
+                                            <textarea id="buyer-address" placeholder="Address" rows="2"></textarea>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Items Table -->
+                                <div class="editor-section">
+                                    <h3><i class="fa-solid fa-list"></i> Items</h3>
+                                    <div class="table-container">
+                                        <table class="items-table" id="items-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>Description</th>
+                                                    <th width="120">Qty</th>
+                                                    <th width="150">Price</th>
+                                                    <th width="150">Total</th>
+                                                    <th width="40"></th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="items-body">
+                                                <!-- Items will be injected here -->
+                                            </tbody>
+                                        </table>
+                                        <button class="add-row-btn" id="add-row-btn">
+                                            <i class="fa-solid fa-plus"></i> Add Line Item
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- Totals -->
+                                <div class="totals-section">
+                                    <div class="total-row">
+                                        <span>Subtotal</span>
+                                        <input type="number" id="subtotal" step="0.01">
+                                    </div>
+                                    <div class="total-row">
+                                        <span>VAT Amount</span>
+                                        <input type="number" id="vat-amount" step="0.01">
+                                    </div>
+                                    <div class="total-row grand-total">
+                                        <span>Total Amount</span>
+                                        <input type="number" id="total-amount" step="0.01">
+                                    </div>
+                                </div>
+
+                                <!-- Actions -->
+                                <div class="editor-actions">
+                                    <button class="btn-primary" id="save-db-btn">
+                                        <i class="fa-solid fa-database"></i> Save to Database
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Settings Modal -->
+    <div class="modal-overlay" id="settings-modal">
+        <div class="modal modal-large">
+            <div class="modal-header">
+                <h2>Configuration</h2>
+                <button class="close-modal"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body">
+                <!-- Tabs -->
+                <div class="settings-tabs">
+                    <button class="tab-btn active" data-tab="general">General</button>
+                    <button class="tab-btn" data-tab="prompts">System Prompts</button>
+                    <button class="tab-btn" data-tab="models">Model Settings</button>
+                </div>
+
+                <!-- General Tab -->
+                <div class="tab-content active" id="general-tab">
+                    <div class="form-group">
+                        <label>Compartment OCID</label>
+                        <input type="text" id="compartment-id"
+                            placeholder="ocid1.compartment.oc1..aaaaaaaancmbh4gcptvcfm75ton5crgee2paqny2ank57m7pfqbbdun373bq">
+                    </div>
+                    <div class="form-group">
+                        <label>Region</label>
+                        <select id="region-select">
+                            <option value="us-chicago-1">US Central (Chicago)</option>
+                            <option value="uk-london-1">UK South (London)</option>
+                            <option value="eu-frankfurt-1">Germany Central (Frankfurt)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Endpoint URL (Local Proxy)</label>
+                        <input type="text" id="api-endpoint" value="http://localhost:3000/generate"
+                            placeholder="http://localhost:3000/generate">
+                        <small>Requires a local proxy server to handle OCI Auth</small>
+                    </div>
+                </div>
+
+                <!-- System Prompts Tab -->
+                <div class="tab-content" id="prompts-tab">
+                    <div class="form-group">
+                        <label>Saved System Prompts</label>
+                        <select id="saved-prompts" class="select-input">
+                            <option value="">-- Select a saved prompt --</option>
+                        </select>
+                        <small>Load a previously saved system prompt</small>
+                    </div>
+                    <div class="form-group">
+                        <label>Prompt Name</label>
+                        <input type="text" id="prompt-name" placeholder="e.g., Receipt Analysis, Invoice Extraction">
+                        <small>Give your prompt a descriptive name</small>
+                    </div>
+                    <div class="form-group">
+                        <label>System Prompt</label>
+                        <textarea id="settings-system-prompt" class="textarea-input" rows="10"
+                            placeholder="Enter your system prompt here..."></textarea>
+                        <small>This will be used as the default prompt for analysis</small>
+                    </div>
+                    <div class="button-group">
+                        <button class="btn-secondary" id="save-prompt-btn">
+                            <i class="fa-solid fa-save"></i> Save Prompt
+                        </button>
+                        <button class="btn-secondary" id="delete-prompt-btn">
+                            <i class="fa-solid fa-trash"></i> Delete Selected
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Model Settings Tab -->
+                <div class="tab-content" id="models-tab">
+                    <div class="model-config-section">
+                        <h3><i class="fa-solid fa-brain"></i> OCI Gemini 2.5 Pro</h3>
+                        <div class="config-grid">
+                            <div class="form-group">
+                                <label>Temperature</label>
+                                <input type="number" id="gemini-temp" step="0.1" min="0" max="2" value="0.1">
+                                <small>0 = focused, 2 = creative</small>
+                            </div>
+                            <div class="form-group">
+                                <label>Max Tokens</label>
+                                <input type="number" id="gemini-tokens" min="1" max="65536" value="65536">
+                            </div>
+                            <div class="form-group">
+                                <label>Top K</label>
+                                <input type="number" id="gemini-topk" min="0" max="100" value="1">
+                            </div>
+                            <div class="form-group">
+                                <label>Top P</label>
+                                <input type="number" id="gemini-topp" step="0.01" min="0" max="1" value="0.95">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="model-config-section">
+                        <h3><i class="fa-solid fa-brain"></i> OCI Grok 4</h3>
+                        <div class="config-grid">
+                            <div class="form-group">
+                                <label>Temperature</label>
+                                <input type="number" id="grok-temp" step="0.1" min="0" max="2" value="0.1">
+                            </div>
+                            <div class="form-group">
+                                <label>Max Tokens</label>
+                                <input type="number" id="grok-tokens" min="1" max="63565" value="63565">
+                            </div>
+                            <div class="form-group">
+                                <label>Top K</label>
+                                <input type="number" id="grok-topk" min="0" max="100" value="0">
+                            </div>
+                            <div class="form-group">
+                                <label>Top P</label>
+                                <input type="number" id="grok-topp" step="0.01" min="0" max="1" value="1">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="model-config-section">
+                        <h3><i class="fa-solid fa-brain"></i> OCI Llama 4 Maverick</h3>
+                        <div class="config-grid">
+                            <div class="form-group">
+                                <label>Temperature</label>
+                                <input type="number" id="llama-temp" step="0.1" min="0" max="2" value="0.1">
+                            </div>
+                            <div class="form-group">
+                                <label>Max Tokens</label>
+                                <input type="number" id="llama-tokens" min="1" max="4000" value="4000">
+                            </div>
+                            <div class="form-group">
+                                <label>Top K</label>
+                                <input type="number" id="llama-topk" min="0" max="100" value="0">
+                            </div>
+                            <div class="form-group">
+                                <label>Top P</label>
+                                <input type="number" id="llama-topp" step="0.01" min="0" max="1" value="0.75">
+                            </div>
+                        </div>
+                    </div>
+                    <button class="btn-secondary" id="reset-models-btn">
+                        <i class="fa-solid fa-rotate-left"></i> Reset to Defaults
+                    </button>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-primary" id="save-settings">Save All Settings</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="invoice-script.js"></script>
+</body>
+
+</html>

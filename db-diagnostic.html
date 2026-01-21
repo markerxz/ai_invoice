@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Database Diagnostic</title>
+    <link rel="stylesheet" href="ocr-style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+
+<body>
+    <div class="app-container">
+        <aside class="sidebar">
+            <div class="brand">
+                <img src="oracle_logo.png" alt="Oracle" style="height: 32px; margin-right: 8px;">
+                <span>DB Diagnostic</span>
+            </div>
+            <nav class="nav-menu">
+                <a href="index.html" class="nav-item">
+                    <i class="fa-solid fa-comments"></i>
+                    <span>Chat</span>
+                </a>
+                <a href="invoice-analysis.html" class="nav-item">
+                    <i class="fa-solid fa-file-invoice-dollar"></i>
+                    <span>Invoice Analysis</span>
+                </a>
+                <a href="db-diagnostic.html" class="nav-item active">
+                    <i class="fa-solid fa-database"></i>
+                    <span>DB Diagnostic</span>
+                </a>
+            </nav>
+        </aside>
+
+        <main class="main-content">
+            <header class="page-header">
+                <h1><i class="fa-solid fa-database"></i> Database Diagnostic</h1>
+                <p>Test connection and view saved invoices</p>
+            </header>
+
+            <div class="analysis-container" style="grid-template-columns: 1fr;">
+                <div class="section-card">
+                    <h2><i class="fa-solid fa-plug"></i> Connection Test</h2>
+                    <button id="test-btn" class="analyze-btn">
+                        <i class="fa-solid fa-flask"></i> Test Connection
+                    </button>
+                    <pre id="connection-result"
+                        style="margin-top: 20px; padding: 15px; background: var(--bg-secondary); border-radius: 8px; display: none;"></pre>
+                </div>
+
+                <div class="section-card" style="margin-top: 20px;">
+                    <h2><i class="fa-solid fa-table"></i> Saved Invoices</h2>
+                    <button id="load-btn" class="analyze-btn">
+                        <i class="fa-solid fa-download"></i> Load Invoices
+                    </button>
+                    <div id="invoices-container" style="margin-top: 20px;"></div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const testBtn = document.getElementById('test-btn');
+        const loadBtn = document.getElementById('load-btn');
+        const connectionResult = document.getElementById('connection-result');
+        const invoicesContainer = document.getElementById('invoices-container');
+
+        testBtn.addEventListener('click', async () => {
+            testBtn.disabled = true;
+            testBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Testing...';
+            connectionResult.style.display = 'block';
+            connectionResult.textContent = 'Testing connection...';
+
+            try {
+                const response = await fetch('http://localhost:3000/test-db');
+                const data = await response.json();
+
+                if (response.ok) {
+                    connectionResult.textContent = JSON.stringify(data, null, 2);
+                    connectionResult.style.color = 'var(--success)';
+                } else {
+                    connectionResult.textContent = 'Error: ' + JSON.stringify(data, null, 2);
+                    connectionResult.style.color = 'var(--error)';
+                }
+            } catch (error) {
+                connectionResult.textContent = 'Error: ' + error.message;
+                connectionResult.style.color = 'var(--error)';
+            } finally {
+                testBtn.disabled = false;
+                testBtn.innerHTML = '<i class="fa-solid fa-flask"></i> Test Connection';
+            }
+        });
+
+        loadBtn.addEventListener('click', async () => {
+            loadBtn.disabled = true;
+            loadBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Loading...';
+
+            try {
+                const response = await fetch('http://localhost:3000/list-invoices');
+                const data = await response.json();
+
+                if (response.ok && data.invoices) {
+                    if (data.invoices.length === 0) {
+                        invoicesContainer.innerHTML = '<p style="color: var(--text-secondary);">No invoices found.</p>';
+                    } else {
+                        let html = '<table class="items-table"><thead><tr><th>ID</th><th>Type</th><th>Number</th><th>Date</th><th>Seller</th><th>Total</th><th>Created</th></tr></thead><tbody>';
+                        data.invoices.forEach(inv => {
+                            html += `<tr>
+                                <td>${inv.ID}</td>
+                                <td>${inv.DOCUMENT_TYPE || '-'}</td>
+                                <td>${inv.DOCUMENT_NO || '-'}</td>
+                                <td>${inv.ISSUE_DATE || '-'}</td>
+                                <td>${inv.SELLER_NAME || '-'}</td>
+                                <td>${inv.TOTAL_AMOUNT || 0}</td>
+                                <td>${inv.CREATED_AT || '-'}</td>
+                            </tr>`;
+                        });
+                        html += '</tbody></table>';
+                        invoicesContainer.innerHTML = html;
+                    }
+                } else {
+                    invoicesContainer.innerHTML = '<p style="color: var(--error);">Error: ' + JSON.stringify(data) + '</p>';
+                }
+            } catch (error) {
+                invoicesContainer.innerHTML = '<p style="color: var(--error);">Error: ' + error.message + '</p>';
+            } finally {
+                loadBtn.disabled = false;
+                loadBtn.innerHTML = '<i class="fa-solid fa-download"></i> Load Invoices';
+            }
+        });
+    </script>
+</body>
+
+</html>

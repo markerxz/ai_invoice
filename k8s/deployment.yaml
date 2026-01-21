@@ -1,0 +1,99 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: invoice-app
+  namespace: default
+  labels:
+    app: invoice-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: invoice-app
+  template:
+    metadata:
+      labels:
+        app: invoice-app
+    spec:
+      containers:
+      - name: invoice-app
+        image: <REGION>.ocir.io/<TENANCY_NAMESPACE>/invoice-app:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 3000
+          name: http
+        env:
+        - name: OCI_REGION
+          valueFrom:
+            configMapKeyRef:
+              name: invoice-app-config
+              key: OCI_REGION
+        - name: NODE_ENV
+          valueFrom:
+            configMapKeyRef:
+              name: invoice-app-config
+              key: NODE_ENV
+        - name: DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: invoice-app-secrets
+              key: DB_USER
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: invoice-app-secrets
+              key: DB_PASSWORD
+        - name: WALLET_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: invoice-app-secrets
+              key: WALLET_PASSWORD
+        - name: DB_CONNECT_STRING
+          valueFrom:
+            secretKeyRef:
+              name: invoice-app-secrets
+              key: DB_CONNECT_STRING
+        - name: TNS_ADMIN
+          value: "/app/wallet"
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /test-db
+            port: 3000
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /test-db
+            port: 3000
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 3
+        volumeMounts:
+        - name: wallet
+          mountPath: /app/wallet
+          readOnly: true
+      volumes:
+      - name: wallet
+        secret:
+          secretName: invoice-app-secrets
+          items:
+          - key: cwallet.sso
+            path: cwallet.sso
+          - key: ewallet.p12
+            path: ewallet.p12
+          - key: tnsnames.ora
+            path: tnsnames.ora
+          - key: sqlnet.ora
+            path: sqlnet.ora
+      imagePullSecrets:
+      - name: ocir-secret

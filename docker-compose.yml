@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  invoice-app:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - OCI_REGION=${OCI_REGION}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - TNS_ADMIN=/app/wallet
+      - WALLET_PASSWORD=${WALLET_PASSWORD}
+      - DB_CONNECT_STRING=${DB_CONNECT_STRING}
+    volumes:
+      # Mount wallet directory
+      - ./Wallet_ADBforAIlowerCost:/app/wallet:ro
+      # Mount for development (optional)
+      - .:/app
+      - /app/node_modules
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/test-db', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 40s

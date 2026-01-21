@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Invoice List - Oracle AI Invoice Extractor</title>
+    <link rel="stylesheet" href="ocr-style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Outfit:wght@400;500;600;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .invoice-table-container {
+            background: var(--surface);
+            border-radius: 12px;
+            box-shadow: var(--shadow-sm);
+            overflow: hidden;
+        }
+
+        .invoice-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .invoice-table th,
+        .invoice-table td {
+            padding: 12px 16px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .invoice-table th {
+            background: var(--surface-hover);
+            font-weight: 600;
+            color: var(--text-secondary);
+            font-size: 0.9em;
+        }
+
+        .invoice-table tr:hover {
+            background: var(--surface-hover);
+        }
+
+        .action-btn {
+            padding: 6px 12px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            background: var(--surface);
+            color: var(--text);
+            cursor: pointer;
+            font-size: 0.85em;
+            margin-right: 4px;
+            transition: all 0.2s;
+        }
+
+        .action-btn:hover {
+            background: var(--primary-light);
+            color: var(--primary);
+            border-color: var(--primary);
+        }
+
+        .action-btn.delete {
+            color: #ef4444;
+        }
+
+        .action-btn.delete:hover {
+            background: #fee2e2;
+            border-color: #ef4444;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="brand">
+                <img src="oracle_logo.png" alt="Oracle" style="height: 32px; margin-right: 8px;">
+                <div>
+                    <span style="display: block; font-size: 1.1rem; font-weight: 700;">Oracle AI Invoice
+                        Extractor</span>
+                    <span
+                        style="display: block; font-size: 0.7rem; color: var(--text-secondary); margin-top: 2px;">Powered
+                        by OCI Generative AI</span>
+                </div>
+            </div>
+
+            <nav class="nav-menu">
+                <a href="index.html" class="nav-item">
+                    <i class="fa-solid fa-comments"></i>
+                    <span>Chat</span>
+                </a>
+                <a href="ocr-analysis.html" class="nav-item">
+                    <i class="fa-solid fa-receipt"></i>
+                    <span>Receipt Analysis</span>
+                </a>
+                <a href="invoice-analysis.html" class="nav-item">
+                    <i class="fa-solid fa-file-invoice-dollar"></i>
+                    <span>Invoice Analysis</span>
+                </a>
+                <a href="invoice-list.html" class="nav-item active">
+                    <i class="fa-solid fa-list"></i>
+                    <span>Invoice List</span>
+                </a>
+            </nav>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <header class="page-header">
+                <div class="header-content">
+                    <button class="sidebar-toggle" id="sidebar-toggle" title="Toggle Sidebar">
+                        <i class="fa-solid fa-bars"></i>
+                    </button>
+                    <h1><i class="fa-solid fa-list"></i> Invoice List</h1>
+                    <p>Manage your saved invoices</p>
+                </div>
+            </header>
+
+            <div style="padding: 1.25rem 2rem;">
+                <div style="display: flex; justify-content: flex-end; align-items: center; margin-bottom: 1rem;">
+                    <button onclick="window.location.href='invoice-analysis.html'"
+                        style="background: var(--accent); color: white; border: none; padding: 0.65rem 1.25rem; border-radius: 8px; cursor: pointer; font-weight: 500; display: flex; align-items: center; gap: 8px; transition: all 0.2s;">
+                        <i class="fa-solid fa-plus"></i> New Invoice
+                    </button>
+                </div>
+
+                <div class="invoice-table-container">
+                    <table class="invoice-table" id="invoice-list-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Date</th>
+                                <th>No.</th>
+                                <th>Seller</th>
+                                <th>Total</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="invoice-list-body">
+                            <!-- Rows injected via JS -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <div id="loading-indicator" style="text-align: center; padding: 40px; color: var(--text-secondary);">
+                    <i class="fa-solid fa-circle-notch fa-spin fa-2x"></i>
+                    <p style="margin-top: 10px;">Loading invoices...</p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const tableBody = document.getElementById('invoice-list-body');
+            const loadingIndicator = document.getElementById('loading-indicator');
+
+            try {
+                const response = await fetch('http://localhost:3000/list-invoices');
+                const data = await response.json();
+
+                loadingIndicator.style.display = 'none';
+
+                if (data.invoices && data.invoices.length > 0) {
+                    data.invoices.forEach(inv => {
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `
+                            <td>${inv.ID}</td>
+                            <td>${inv.ISSUE_DATE || '-'}</td>
+                            <td>${inv.DOCUMENT_NO || '-'}</td>
+                            <td>${inv.SELLER_NAME || '-'}</td>
+                            <td>${parseFloat(inv.TOTAL_AMOUNT || 0).toLocaleString('th-TH', { minimumFractionDigits: 2 })}</td>
+                            <td>
+                                <button class="action-btn" onclick="editInvoice(${inv.ID})">
+                                    <i class="fa-solid fa-pen"></i> Edit
+                                </button>
+                                <button class="action-btn delete" onclick="deleteInvoice(${inv.ID})">
+                                    <i class="fa-solid fa-trash"></i> Delete
+                                </button>
+                            </td>
+                        `;
+                        tableBody.appendChild(tr);
+                    });
+                } else {
+                    tableBody.innerHTML = '<tr><td colspan="6" style="text-align: center;">No invoices found.</td></tr>';
+                }
+            } catch (error) {
+                console.error('Error fetching invoices:', error);
+                loadingIndicator.innerHTML = `<p style="color: #ef4444;">Error loading invoices: ${error.message}</p>`;
+            }
+
+            // Expose functions globally
+            window.editInvoice = (id) => {
+                window.location.href = `invoice-analysis.html?id=${id}`;
+            };
+
+            window.deleteInvoice = async (id) => {
+                if (confirm('Are you sure you want to delete this invoice?')) {
+                    try {
+                        const response = await fetch(`http://localhost:3000/invoice/${id}`, {
+                            method: 'DELETE'
+                        });
+                        const result = await response.json();
+                        if (response.ok) {
+                            alert('Invoice deleted successfully');
+                            location.reload();
+                        } else {
+                            throw new Error(result.error || 'Failed to delete');
+                        }
+                    } catch (error) {
+                        alert(`Error: ${error.message}`);
+                    }
+                }
+            };
+
+            // Sidebar toggle logic (shared)
+            const sidebarToggle = document.getElementById('sidebar-toggle');
+            const sidebar = document.querySelector('.sidebar');
+            if (sidebarToggle && sidebar) {
+                sidebarToggle.addEventListener('click', () => {
+                    sidebar.classList.toggle('collapsed');
+                });
+            }
+        });
+    </script>
+</body>
+
+</html>
